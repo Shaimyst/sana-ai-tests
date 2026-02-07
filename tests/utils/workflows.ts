@@ -4,8 +4,8 @@ import { clickFirstVisible, isVisible } from "./locators";
 const workflowsHeadingRegex = /workflows/i;
 
 export const navigateToWorkflows = async (page: Page) => {
-  await page.goto("/workflows", { waitUntil: "domcontentloaded" }).catch(async () => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("workflows", { waitUntil: "domcontentloaded" }).catch(async () => {
+    await page.goto(".", { waitUntil: "domcontentloaded" });
   });
 
   if (page.url().includes("select-workspace")) {
@@ -28,7 +28,7 @@ export const navigateToWorkflows = async (page: Page) => {
   if (await isVisible(workflowsLink)) {
     await workflowsLink.click();
   } else {
-    await page.goto("/workflows", { waitUntil: "domcontentloaded" });
+    await page.goto("workflows", { waitUntil: "domcontentloaded" });
   }
 
   await page.waitForURL(/\/workflows/, { timeout: 15_000 });
@@ -93,5 +93,15 @@ export const deleteWorkflow = async (page: Page) => {
   await expect(page.getByRole("menuitem", { name: "Delete workflow" })).toBeVisible();
   await page.getByRole("menuitem", { name: "Delete workflow" }).click();
   await page.getByRole("heading", { name: "Confirm deletion" }).click();
-  await page.getByRole("button", { name: "Confirm" }).click();
+  const deleteRequest = page.waitForResponse((response) => {
+    return (
+      response.url().endsWith(".deletePrompt") &&
+      response.request().method() === "POST" &&
+      response.status() === 200
+    );
+  });
+  await Promise.all([
+    deleteRequest,
+    page.getByRole("button", { name: "Confirm" }).click(),
+  ]);
 };

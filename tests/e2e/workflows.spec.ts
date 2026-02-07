@@ -19,7 +19,7 @@ test.describe("Workflows", () => {
 
   let stepTwoText = "";
 
-  test("create/delete a workflow", async ({ page }) => {
+  test("create a new workflow with a schedule", async ({ page }) => {
     test.setTimeout(180_000);
     stepTwoText = "Get a cup of coffee";
 
@@ -46,9 +46,8 @@ test.describe("Workflows", () => {
     await workflowsPage.emptyParagraph.fill(stepTwoText);
     await workflowsPage.paragraphWithText(stepTwoText).last().press("Tab");
     
-    const saveWorkflowButton = workflowsPage.saveWorkflowButton;
-    await expect(saveWorkflowButton).toBeEnabled({ timeout: 30_000 });
-    await saveWorkflowButton.click();
+    await expect(workflowsPage.saveWorkflowButton).toBeEnabled({ timeout: 30_000 });
+    await workflowsPage.saveWorkflowButton.click();
     
     // LLM section, maybe grab the LLM response and check it.
     const llmDialog = workflowsPage.llmDialog;
@@ -82,8 +81,62 @@ test.describe("Workflows", () => {
     await workflowsPage.activateButton.click();
     await expect(workflowsPage.llmDialog).not.toBeVisible({ timeout: 30_000 });
 
-    // clean up
-    await deleteWorkflow(page);
+    // clean up (optional)
+    // await deleteWorkflow(page);
+  });
+
+  test("edit the schedule of a workflow", async ({ page }) => {
+    await navigateToWorkflows(page);
+    const workflowsPage = getWorkflowsPage(page);
+
+    // search for the workflow with the text "morning"
+    await page.getByRole('tab', { name: 'My workflows' }).click();
+    await page.getByRole('textbox', { name: 'Search workflows' }).click();
+    await page.getByRole('textbox', { name: 'Search workflows' }).fill('morning');
+    await page.getByRole("heading", { level: 5, name: /morning/i }).first().click();
+
+    await page.getByRole('button', { name: 'Edit' }).nth(2).click();
+
+    await openTriggerTypeMenu(page);
+    await workflowsPage.triggerOptionSetSchedule.click();
+
+    const timeOptions = [
+      "8:00am",
+      "10:00am",
+      "12:00pm",
+      "2:00pm",
+      "4:00pm",
+      "6:00pm",
+      "8:00pm",
+    ];
+    const currentTime = await workflowsPage.taskTimepicker.inputValue();
+    const newTime = timeOptions.find((time) => time !== currentTime) ?? "6:00pm";
+
+    await workflowsPage.taskTimepicker.fill(newTime);
+    await workflowsPage.taskTimepicker.press("Enter");
+    await expect(workflowsPage.taskTimepicker).toHaveValue(newTime);
+    await workflowsPage.confirmButton.click();
+    await expect(workflowsPage.saveWorkflowButton).toBeEnabled({ timeout: 30_000 });
+    await workflowsPage.saveWorkflowButton.click();
+  });
+
+  // need to make sure the workflow has a step to delete
+  test.fixme("edit a workflow - delete a step from a workflow", async ({ page }) => {
+    await navigateToWorkflows(page);
+    const workflowsPage = getWorkflowsPage(page);
+
+    await page.getByRole('tab', { name: 'My workflows' }).click();
+    await page.getByRole('textbox', { name: 'Search workflows' }).click();
+    await page.getByRole('textbox', { name: 'Search workflows' }).fill('morning');
+    // click the workflow title (h5) that contains "morning"
+    await page.getByRole("heading", { level: 5, name: /morning/i }).first().click();
+
+    await page.getByRole('button', { name: 'Edit' }).nth(2).click();
+
+    // deletes a step from the workflow
+    await page.getByRole('button', { name: 'Delete step' }).first().click();
+    await expect(workflowsPage.saveWorkflowButton).toBeEnabled({ timeout: 30_000 });
+    await workflowsPage.saveWorkflowButton.click();
   });
 
 });
