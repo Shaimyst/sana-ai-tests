@@ -120,6 +120,33 @@ test.describe("Workflows", () => {
     await workflowsPage.saveWorkflowButton.click();
   });
 
+  test("run a workflow and verify it succeeds", async ({ page }) => {
+    test.setTimeout(180_000);
+    await navigateToWorkflows(page);
+
+    await page.getByRole("tab", { name: "My workflows" }).click();
+    await page.getByRole("textbox", { name: "Search workflows" }).click();
+    await page.getByRole("textbox", { name: "Search workflows" }).fill("morning");
+    await page.getByRole("heading", { level: 5, name: /morning/i }).first().click();
+
+    const workflowMenuButton = page
+      .locator("main")
+      .locator('button[aria-haspopup="menu"]')
+      .first();
+    await expect(workflowMenuButton).toBeEnabled({ timeout: 30_000 });
+    await workflowMenuButton.click();
+    await page.getByRole("menuitem", { name: /run now|run workflow|run/i }).click();
+
+    const runsTab = page.getByRole("tab", { name: /runs|history/i });
+    if (await runsTab.isVisible()) {
+      await runsTab.click();
+    }
+
+    await expect(page.getByText(/done/i).first()).toBeVisible({
+      timeout: 120_000,
+    });
+  });
+
   // need to make sure the workflow has a step to delete
   test.fixme("edit a workflow - delete a step from a workflow", async ({ page }) => {
     await navigateToWorkflows(page);
