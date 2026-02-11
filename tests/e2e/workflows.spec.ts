@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page, type BrowserContext } from "@playwright/test";
 import {
   deleteWorkflow,
   getWorkflowsPage,
@@ -13,17 +13,25 @@ const hasStorageState = existsSync(storageStatePath);
 test.describe("Workflows", () => {
   test.describe.configure({ mode: "serial" });
 
-  test.beforeAll(() => {
-    test.skip(!hasStorageState, "Run `npm run auth` to create storageState.json");
-  });
-
+  let page: Page;
+  let context: BrowserContext;
   let stepTwoText = "";
 
-  test("create a new workflow with a schedule", async ({ page }) => {
+  test.beforeAll(async ({ browser }) => {
+    test.skip(!hasStorageState, "Run `npm run auth` to create storageState.json");
+    context = await browser.newContext({ storageState: storageStatePath });
+    page = await context.newPage();
+    await navigateToWorkflows(page);
+  });
+
+  test.afterAll(async () => {
+    await context?.close();
+  });
+
+  test("create a new workflow with a schedule", async () => {
     test.setTimeout(180_000);
     stepTwoText = "Get a cup of coffee";
 
-    await navigateToWorkflows(page);
     const workflowsPage = getWorkflowsPage(page);
 
     await workflowsPage.createWorkflowButton.click();
@@ -85,7 +93,7 @@ test.describe("Workflows", () => {
     // await deleteWorkflow(page);
   });
 
-  test("edit the schedule of a workflow", async ({ page }) => {
+  test("edit the schedule of a workflow", async () => {
     await navigateToWorkflows(page);
     const workflowsPage = getWorkflowsPage(page);
 
@@ -120,7 +128,7 @@ test.describe("Workflows", () => {
     await workflowsPage.saveWorkflowButton.click();
   });
 
-  test("run a workflow and verify it succeeds", async ({ page }) => {
+  test("run a workflow and verify it succeeds", async () => {
     test.setTimeout(180_000);
     await navigateToWorkflows(page);
 
@@ -148,7 +156,7 @@ test.describe("Workflows", () => {
   });
 
   // need to make sure the workflow has a step to delete
-  test.fixme("edit a workflow - delete a step from a workflow", async ({ page }) => {
+  test.fixme("edit a workflow - delete a step from a workflow", async () => {
     await navigateToWorkflows(page);
     const workflowsPage = getWorkflowsPage(page);
 
